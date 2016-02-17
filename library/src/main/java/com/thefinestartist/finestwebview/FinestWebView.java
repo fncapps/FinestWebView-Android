@@ -157,6 +157,7 @@ public class FinestWebView {
         protected Integer webViewMixedContentMode;
         protected Boolean webViewOffscreenPreRaster;
 
+        protected List<String> mimeTypes;
         protected String injectJavaScript;
 
         protected String mimeType;
@@ -877,6 +878,11 @@ public class FinestWebView {
          */
         public Builder webViewDesktopMode(boolean webViewDesktopMode) {
             return webViewUserAgentString("Mozilla/5.0 (X11; U; Linux i686; en-US; rv:1.9.0.4) Gecko/20100101 Firefox/4.0");
+        }
+
+        public Builder manageDownloads(List<String> mimeTypes) {
+            this.mimeTypes = mimeTypes;
+            return this;
         }
 
         public Builder injectJavaScript(String injectJavaScript) {

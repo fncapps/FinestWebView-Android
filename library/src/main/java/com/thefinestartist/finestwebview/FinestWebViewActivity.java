@@ -1,6 +1,7 @@
 package com.thefinestartist.finestwebview;
 
 import android.annotation.SuppressLint;
+import android.app.DownloadManager;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.content.res.TypedArray;
@@ -12,6 +13,7 @@ import android.graphics.drawable.StateListDrawable;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.annotation.DrawableRes;
 import android.support.design.widget.AppBarLayout;
 import android.support.design.widget.CoordinatorLayout;
@@ -51,6 +53,8 @@ import com.thefinestartist.finestwebview.helpers.TypefaceHelper;
 import com.thefinestartist.finestwebview.helpers.UrlParser;
 import com.thefinestartist.finestwebview.listeners.BroadCastManager;
 import com.thefinestartist.finestwebview.views.ShadowLayout;
+
+import java.util.List;
 
 
 /**
@@ -179,6 +183,7 @@ public class FinestWebViewActivity extends AppCompatActivity implements AppBarLa
     protected Integer webViewMixedContentMode;
     protected Boolean webViewOffscreenPreRaster;
 
+    protected List<String> mimeTypes;
     protected String injectJavaScript;
 
     protected String mimeType;
@@ -343,6 +348,7 @@ public class FinestWebViewActivity extends AppCompatActivity implements AppBarLa
         webViewMixedContentMode = builder.webViewMixedContentMode;
         webViewOffscreenPreRaster = builder.webViewOffscreenPreRaster;
 
+        mimeTypes = builder.mimeTypes;
         injectJavaScript = builder.injectJavaScript;
 
         mimeType = builder.mimeType;
@@ -1064,6 +1070,15 @@ public class FinestWebViewActivity extends AppCompatActivity implements AppBarLa
 
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
+
+            boolean manageDownload = false;
+            for(String mimeType : mimeTypes){
+                if(url.endsWith("." + mimeType)) {
+                    manageDownload = true;
+                    break;
+                }
+            }
+
             if (url.endsWith(".mp4")) {
                 Intent intent = new Intent(Intent.ACTION_VIEW);
                 intent.setDataAndType(Uri.parse(url), "video/*");
@@ -1076,6 +1091,24 @@ public class FinestWebViewActivity extends AppCompatActivity implements AppBarLa
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 view.getContext().startActivity(intent);
                 // If we return true, onPageStarted, onPageFinished won't be called.
+                return true;
+            } else if (manageDownload){
+                // Download manager no supported under API 11
+                // Under API 11 just using a intent to default browser
+                if (android.os.Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB){
+
+                    DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
+                    request.allowScanningByMediaScanner();
+                    request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+                    //request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "download");
+
+                    DownloadManager dm = (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
+                    dm.enqueue(request);
+                } else {
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(url));
+                    startActivity(i);
+                }
                 return true;
             } else {
                 return super.shouldOverrideUrlLoading(view, url);
